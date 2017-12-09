@@ -41,7 +41,7 @@ class TwoLayerNet(object):
     self.params['W2'] = std * np.random.randn(hidden_size, output_size)
     self.params['b2'] = np.zeros(output_size)
 
-  def loss(self, X, y=None, reg=0.0, dropout_ratio=0):
+  def loss(self, X, y=None, reg=0.0, dropcon_ratio=0):
     """
     Compute the loss and gradients for a two layer fully connected neural
     network.
@@ -78,12 +78,12 @@ class TwoLayerNet(object):
     #############################################################################
     
     # W1_mask for both W1 and dW1
-    # Make sure the frozen weights don't affect neither forword path nor backward
-    W1_mask = np.random.rand(*W1.shape) < (1 - dropout_ratio)
+    # Make sure the frozen weights won't affect neither forword path nor backward
+    W1_mask = np.random.rand(*W1.shape) < (1 - dropcon_ratio)
     # Keep the expected value of W1 unchanged 
-    W1_retain = W1_mask * W1 / (1 - dropout_ratio)
-    W2_mask = np.random.rand(*W2.shape) < (1 - dropout_ratio)
-    W2_retain = W2_mask * W2 / (1 - dropout_ratio)
+    W1_retain = W1_mask * W1 / (1 - dropcon_ratio)
+    W2_mask = np.random.rand(*W2.shape) < (1 - dropcon_ratio)
+    W2_retain = W2_mask * W2 / (1 - dropcon_ratio)
     
     L1_output = X.dot(W1_retain)
     scores_h = np.maximum(L1_output + b1, 0)
@@ -147,7 +147,7 @@ class TwoLayerNet(object):
 
   def train(self, X, y, X_val, y_val,
             learning_rate=1e-3, learning_rate_decay=0.95,
-            reg=5e-6, num_iters=100, dropout_ratio=0,
+            reg=5e-6, num_iters=100, dropcon_ratio=0,
             batch_size=200, verbose=False):
     """
     Train this neural network using stochastic gradient descent.
@@ -191,7 +191,7 @@ class TwoLayerNet(object):
 
       # Compute loss and gradients using the current minibatch
       loss, grads = self.loss(X_batch, y=y_batch, reg=reg, 
-                            dropout_ratio=dropout_ratio)
+                            dropcon_ratio=dropcon_ratio)
       loss_history.append(loss)
 
       #########################################################################
