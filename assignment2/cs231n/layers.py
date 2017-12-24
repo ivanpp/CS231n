@@ -351,7 +351,47 @@ def conv_forward_naive(x, w, b, conv_param):
       W' = 1 + (W + 2 * pad - WW) / stride
     - cache: (x, w, b, conv_param)
     """
-    out = None
+    # Dimensional info
+    stride, pad = conv_param['stride'], conv_param['pad']
+    F, C, HH, WW = w.shape
+    N, C, H, W = x.shape
+    # Zero-padding
+    pad_width = ((0, 0), (0, 0), (pad, pad), (pad, pad))
+    x = np.pad(x, pad_width, 'constant', constant_values=0)
+    # Calculate output shape (N, F, HO, WO)
+    HO = int(1 + (H + 2 * pad - HH) / stride)
+    WO = int(1 + (W + 2 * pad - WW) / stride)
+    # Calculate the initial mask
+    mask_h = np.arange(0, H + 2 * pad - HH + 1, stride)
+    mask_w = np.arange(0, W + 2 * pad - WW + 1, stride)
+    assert mask_h.shape[0] == HO
+    assert mask_w.shape[0] == WO
+    # List for concatenating
+    conca_list = []
+    for mask_hh in mask_h:
+        for mask_ww in mask_w:
+            conv_slice = x[:, :, mask_hh:mask_hh+HH, mask_ww:mask_ww+WW]
+            assert conv_slice.shape == (N, C, HH, WW)
+            # (N, C*HH*WW, 1)
+            conv_slice = conv_slice.reshape(N, -1, 1)
+            conca_list.append(conv_slice)
+    
+    x_new = np.concatenate(conca_list, axis=2)
+    assert x_new.shape == (N, C * HH * WW, HO * WO)
+    x_new = x_new.reshape(N, C * HH * WW, 1, HO * WO)
+    # (F, C, HH, WW) to (1, F, C * HH * WW)
+    w = w.reshape(1, F, -1, 1)
+    # Transpose to (1, C * HH * WW, F, 1)
+    w = np.transpose(w, (0, 2, 1, 3))
+    # Now we have a x_new of shape (N, C*HH*WW, 1, HO*WO)
+    # And a w of shape (1, C*HH*WW, F, 1)
+    # Mutiply them we will get a ndarry of shape (N, C*HH*WW, F, HO*WO)
+    out = w * x_new
+    assert w.shape[1] == x_new.shape[1]
+    out = np.sum(out, axis=1)
+    out = out.reshape(N, F, HO, WO)
+    b = b.reshape(1, -1, 1, 1)
+    out = out + b
     ###########################################################################
     # TODO: Implement the convolutional forward pass.                         #
     # Hint: you can use the function np.pad for padding.                      #
