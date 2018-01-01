@@ -358,12 +358,11 @@ def conv_forward_naive(x, w, b, conv_param):
     # Zero-padding
     pad_width = ((0, 0), (0, 0), (pad, pad), (pad, pad))
     x = np.pad(x, pad_width, 'constant', constant_values=0)
-    # Calculate output shape (N, F, HO, WO)
-    HO = 1 + (H + 2 * pad - HH) // stride
-    WO = 1 + (W + 2 * pad - WW) // stride
-    # Calculate the initial mask
+    # Calculate the initial mask and output shape
     mask_h = np.arange(0, H + 2 * pad - HH + 1, stride)
     mask_w = np.arange(0, W + 2 * pad - WW + 1, stride)
+    HO = mask_h.shape[0]
+    WO = mask_w.shape[0]
     # List for concatenating
     conca_list = []
     for mask_hh in mask_h:
@@ -371,15 +370,14 @@ def conv_forward_naive(x, w, b, conv_param):
             conv_slice = x[:, :, mask_hh:mask_hh+HH, mask_ww:mask_ww+WW]
             conv_slice = conv_slice.reshape(N, -1, 1)
             conca_list.append(conv_slice)
-            
     x_new = np.concatenate(conca_list, axis=2)
     x_new = x_new.reshape(N, 1, C * HH * WW, HO * WO)
     # (F, C, HH, WW) to (F, C*HH*WW, 1)
-    w = w.reshape(F, -1, 1)
+    w_new = w.reshape(F, -1, 1)
     # Now we have a x_new of shape (N, 1, C*HH*WW, HO*WO)
-    # And a w of shape (F, C*HH*WW, 1)
+    # And a w_new of shape (F, C*HH*WW, 1)
     # Mutiply them we will get a ndarry of shape (N, F, C*HH*WW, HO*WO)
-    out = w * x_new
+    out = w_new * x_new
     out = np.sum(out, axis=2)
     out = out.reshape(N, F, HO, WO)
     b = b.reshape(1, -1, 1, 1)
@@ -392,7 +390,7 @@ def conv_forward_naive(x, w, b, conv_param):
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
-    cache = (x, w, b, conv_param)
+    cache = (x_new, w, b, conv_param)
     return out, cache
 
 
@@ -413,7 +411,37 @@ def conv_backward_naive(dout, cache):
     ###########################################################################
     # TODO: Implement the convolutional backward pass.                        #
     ###########################################################################
-    pass
+    # Dimensional info
+    x, w, b, conv_param = cache
+    stride, pad = conv_param['stride'], conv_param['pad']
+    N, F, HO, WO = dout.shape
+    F, C, HH, WW = w.shape
+    H = (HO - 1) * stride + HH
+    W = (WO - 1) * stride + WW
+    # db: dout
+    db = dout.transpose(1, 0, 2, 3)
+    db = db.reshape(db.shape[0], -1)
+    db = np.sum(db, axis=1)
+    # dw: dout * x
+    dout_w = dout.transpose(1, 0, 2, 3).reshape(F, 1, -1)
+    x = x.transpose(1, 2, 0, 3)
+    x = x.reshape(x.shape[0], x.shape[1], -1)
+    dw = dout_w * x
+    dw = np.sum(dw, axis=2).reshape(F, C, HH, WW)
+    # dx_new: dout * w
+    dout_x = dout.reshape(N, F, 1, -1)
+    w = w.reshape(F, -1, 1)
+    dx_new = dout_x * w
+    dx_new = np.sum(dx_new, axis=1)
+    dx_new = dx_new.reshape(N, C, HH, WW, HO, WO)
+    # dx_new to dx
+    dx = np.zeros((N, C, H, W))
+    for ho in range(HO):
+        for wo in range(WO):
+            dx[:, :, ho*stride:ho*stride+HH, wo*stride:wo*stride+WW] += \
+            dx_new[:, :, :, :, ho, wo]
+    # depadding
+    dx = dx[:, :, pad:H-pad, pad:W-pad]
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
