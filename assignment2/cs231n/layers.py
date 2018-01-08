@@ -25,7 +25,8 @@ def affine_forward(x, w, b):
     # TODO: Implement the affine forward pass. Store the result in out. You   #
     # will need to reshape the input into rows.                               #
     ###########################################################################
-    pass
+    x_new = x.reshape(x.shape[0], -1)
+    out = x_new.dot(w) + b
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -53,7 +54,10 @@ def affine_backward(dout, cache):
     ###########################################################################
     # TODO: Implement the affine backward pass.                               #
     ###########################################################################
-    pass
+    x_new = x.reshape(x.shape[0], -1).T
+    db = np.sum(dout, axis=0)
+    dw = x_new.dot(dout)
+    dx = dout.dot(w.T).reshape(x.shape)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -75,7 +79,8 @@ def relu_forward(x):
     ###########################################################################
     # TODO: Implement the ReLU forward pass.                                  #
     ###########################################################################
-    pass
+    # Use multiplication method instead of np.maximum()
+    out = x * (x > 0)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -98,7 +103,7 @@ def relu_backward(dout, cache):
     ###########################################################################
     # TODO: Implement the ReLU backward pass.                                 #
     ###########################################################################
-    pass
+    dx = dout * (x > 0)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -419,9 +424,7 @@ def conv_backward_naive(dout, cache):
     H = (HO - 1) * stride + HH
     W = (WO - 1) * stride + WW
     # db: dout
-    db = dout.transpose(1, 0, 2, 3)
-    db = db.reshape(db.shape[0], -1)
-    db = np.sum(db, axis=1)
+    db = np.sum(dout, axis = (0,2,3))
     # dw: dout * x
     dout_w = dout.transpose(1, 0, 2, 3).reshape(F, 1, -1)
     x = x.transpose(1, 2, 0, 3)
@@ -467,7 +470,21 @@ def max_pool_forward_naive(x, pool_param):
     ###########################################################################
     # TODO: Implement the max pooling forward pass                            #
     ###########################################################################
-    pass
+    # Dimensional info
+    HH, WW = pool_param['pool_height'], pool_param['pool_width']
+    stride = pool_param['stride']
+    N, C, H, W = x.shape
+    # mask and out
+    mask_h = np.arange(0, H - HH + 1, stride)
+    mask_w = np.arange(0, W - WW + 1, stride)
+    HO = mask_h.shape[0]
+    WO = mask_w.shape[0]
+    out = np.zeros((N, C, HO, WO))
+    for mask_hh in mask_h:
+        for mask_ww in mask_w:
+            pool_slice = x[:, :, mask_hh:mask_hh+HH, mask_ww:mask_ww+WW]
+            out[:, :, mask_hh//HH, mask_ww//WW] = \
+            np.amax(pool_slice, axis=(2, 3))
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -490,7 +507,22 @@ def max_pool_backward_naive(dout, cache):
     ###########################################################################
     # TODO: Implement the max pooling backward pass                           #
     ###########################################################################
-    pass
+    #
+    x, pool_param = cache
+    HH, WW = pool_param['pool_height'], pool_param['pool_width']
+    stride = pool_param['stride']
+    N, C, H, W = x.shape
+    # Use reshape to increase dimension instead of newaxis(None)
+    mask_h = np.arange(0, H - HH + 1, stride)
+    mask_w = np.arange(0, W - WW + 1, stride)
+    dx = np.zeros_like(x)
+    for mask_hh in mask_h:
+        for mask_ww in mask_w:
+            pool_slice = x[:, :, mask_hh:mask_hh+HH, mask_ww:mask_ww+WW]
+            max_pool_slice = np.amax(pool_slice, axis=(2, 3))
+            dx_slice = pool_slice == max_pool_slice.reshape(N, C, 1, 1)
+            dx[:, :, mask_hh:mask_hh+HH, mask_ww:mask_ww+WW] += \
+            dx_slice * dout[:, :, mask_hh//HH, mask_ww//WW].reshape(N, C, 1, 1)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
