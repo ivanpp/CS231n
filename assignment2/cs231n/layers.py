@@ -288,7 +288,7 @@ def batchnorm_backward_alt(dout, cache):
     dx_center = dx_norm / stddev
     dx_center -= np.mean(dx_norm * x_center, axis=0) * x_center / stddev ** 3
     # According to the requirements above
-    # After computing the gradient w.r.t. centered Inputs
+    # After computing the gradient w.r.t. centered inputs
     # Compute gradients w.r.t. inputs in a single statement within 80-character
     dx = dx_center - np.mean(dx_center, axis=0)
     # dgamma, dbeta
