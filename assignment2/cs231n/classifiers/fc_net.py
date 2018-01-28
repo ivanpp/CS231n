@@ -193,6 +193,7 @@ class FullyConnectedNet(object):
                 self.params['beta%d' % (i+1)] = np.zeros((post_dim))
             pre_dim = post_dim
             # No params for ReLU to initialize
+            # No params for dropout to initialize
         post_dim = num_classes
         # Initialize params for the last affine layer
         self.params['W%d' % self.num_layers] = np.random.normal(0.0, weight_scale,
@@ -258,6 +259,7 @@ class FullyConnectedNet(object):
         cache_affine = {}
         cache_bn = {}
         cache_relu = {}
+        cache_dropout = {}
         # Forward pass
         pre_X = X
         for i in range(self.num_layers - 1):
@@ -272,6 +274,10 @@ class FullyConnectedNet(object):
                                   self.params['beta%d' % (i+1)], self.bn_params[i])
             # ReLU
             pre_X, cache_relu[i+1] = relu_forward(pre_X)
+            # Dropout
+            if self.use_dropout:
+                pre_X, cache_dropout[i+1] = dropout_forward(pre_X,
+                                                            self.dropout_param)
         # Last affine layer
         scores, cache_a = affine_forward(pre_X,
                                          self.params['W%d' % (self.num_layers)],
@@ -311,6 +317,9 @@ class FullyConnectedNet(object):
         # Backprop through {[dropout] - relu - [batch norm] - affine}
         for i in reversed(range(self.num_layers - 1)):
             loss += 0.5 * self.reg * np.sum(np.square(self.params['W%d' % (i+1)]))
+            # Dropout (not learnable)
+            if self.use_dropout:
+                dx = dropout_backward(dx, cache_dropout[i+1])
             # ReLU (not learnable)
             dx = relu_backward(dx, cache_relu[i+1])
             # BN (learnable)
