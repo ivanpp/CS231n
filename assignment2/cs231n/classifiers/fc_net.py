@@ -106,11 +106,11 @@ class TwoLayerNet(object):
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
         loss, dout = softmax_loss(scores, y)
-        dx_a2, dw_a2, db_a2 = affine_backward(dout, cache_a2)
-        _, dw_ar1, db_ar1 = affine_relu_backward(dx_a2, cache_ar1)
         loss_reg = np.sum(np.square(self.params['W1'])) + \
                    np.sum(np.square(self.params['W2']))
         loss += 0.5 * self.reg * loss_reg
+        dx_a2, dw_a2, db_a2 = affine_backward(dout, cache_a2)
+        _, dw_ar1, db_ar1 = affine_relu_backward(dx_a2, cache_ar1)
         grads['W1'] = self.reg * self.params['W1'] + dw_ar1
         grads['b1'] = db_ar1
         grads['W2'] = self.reg * self.params['W2'] + dw_a2
