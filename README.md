@@ -29,11 +29,12 @@ If you have any questions, feel free to contact me via e-mail(ding@ivanpp.me).
 
 ## Assignment2
 
-- [ ] Q1: Fully-connected Neural Network (25 points)
-- [ ] Q2: Batch Normalization (25 points)
-- [ ] Q3: Dropout (10 points)
-- [ ] Q4: Convolutional Networks (30 points)
-- [ ] Q5: PyTorch / Tensorflow on CIFAR-10 (10 points)​
+- [x] Q1: Fully-connected Neural Network (25 points)
+- [x] Q2: Batch Normalization (25 points)
+- [x] Q3: Dropout (10 points)
+- [x] Q4: Convolutional Networks (30 points)
+- [x] Q5: PyTorch / Tensorflow on CIFAR-10 (10 points)​
+      see: `./Assignment2/TensorFlow.ipynb`
 
 
 
